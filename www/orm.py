@@ -7,7 +7,7 @@ import aiomysql
 
 # 执行sql时打印文档
 def log(sql, args=()):
-    logging.info('SQL: %s', %sql)
+    logging.info('SQL: %s' %sql)
 
 # 创建连接池,全局连接池，每个http请求都可以从连接池中直接获取数据库连接
 # 好处是不必频繁打开和关闭数据连接
@@ -38,7 +38,7 @@ async def select(sql, args, size=None):
                 rs = await cur.fetchmany(size)
             else:
                 rs = await cur.fetchall()
-            logging.info('rows return: %s', %len(rs))
+            logging.info('rows return: %s' %len(rs))
             return rs
 
 # 创建execute函数执行insert，delete， update语句，传入sql语句和sql参数
@@ -69,10 +69,9 @@ def create_args_string(num):
 class Field(object):
     def __init__(self, name, column_type, primary_key, default):
         self.name = name
-        self.column_type = column_tpye
+        self.column_type = column_type
         self.primary_key = primary_key
         self.default = default
 
     def __str__(self):
         return '<%s, %s:%s>' % (self.__class__.__name__, self.column_type, self.name)
-
