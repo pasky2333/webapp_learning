@@ -16,8 +16,6 @@ def log(sql, args=()):
 # 创建连接池,全局连接池，每个http请求都可以从连接池中直接获取数据库连接
 # 好处是不必频繁打开和关闭数据连接
 # 连接池由全局变量__pool存储，缺省情况下将编码设置为utf8
-
-
 async def create_pool(loop, **kw):
     logging.info('create database connction pool...')  # 打印文档
     global __pool
@@ -77,7 +75,7 @@ async def execute(sql, args, autocommit=True):
 
 def create_args_string(num):
     L = []
-    for n in range(num):
+    for _ in range(num):
         L.append('?')
     return ','.join(L)
 
@@ -131,9 +129,9 @@ class ModelMetaclass(type):
             return type.__new__(cls, name, bases, attrs)
         tableName = attrs.get('__table__', None) or name
         logging.info('found model: %s (table: %s)' % (name, tableName))
-        mappings = dict()
-        fields = []
-        primaryKey = None
+        mappings = dict()  # 映射关系：字段名 ==> 字段类型
+        fields = [] # 除主键外其他字段
+        primaryKey = None # 主键
         for k, v in attrs.items():
             if isinstance(v,Field):
                 logging.info('   found mapping: %s ==> %s' % (k, v))
@@ -149,15 +147,15 @@ class ModelMetaclass(type):
             raise Exception('Primary Key not found')
         for k in mappings.keys():
             attrs.pop(k)
-            escaped_fields = list(map(lambda f: '`%s`' % f, fields))
-            attrs['__mappings__'] = mappings
-            attrs['__table__'] = tableName
-            attrs['__primary_key__'] = primaryKey
-            attrs['__fields__'] = fields
-            attrs['__select__'] = 'select `%s` , %s from `%s`' % (primaryKey, ','.join(escaped_fields), tableName)
-            attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName, ','.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
-            attrs['__delete__'] = 'delete from `%s` where `%s` = ?' % (tableName, primaryKey)
-            return type.__new__(cls, name, bases, attrs)
+        escaped_fields = list(map(lambda f: '`%s`' % f, fields))
+        attrs['__mappings__'] = mappings
+        attrs['__table__'] = tableName
+        attrs['__primary_key__'] = primaryKey
+        attrs['__fields__'] = fields
+        attrs['__select__'] = 'select `%s` , %s from `%s`' % (primaryKey, ','.join(escaped_fields), tableName)
+        attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName, ','.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
+        attrs['__delete__'] = 'delete from `%s` where `%s` = ?' % (tableName, primaryKey)
+        return type.__new__(cls, name, bases, attrs)
 
 
 class Model(dict, metaclass=ModelMetaclass):
@@ -180,7 +178,7 @@ class Model(dict, metaclass=ModelMetaclass):
     def getValueOrDefault(self, key):
         value = getattr(self, key, None)
         if value is None:
-            field = self.__mappings__[key]
+            field = self.__mappings__[key] #取出字段类型
             if field.default is not None:
                 value = field.default() if callable(field.default) else field.default
                 logging.debug('using default value for %s: %s' % (key, str(value)))
