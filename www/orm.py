@@ -33,12 +33,12 @@ async def create_pool(loop, **kw):
         minsize = kw.get('minsize', 1),
         loop=loop
     )
+
+
 # 创建select函数执行select语句，传入sql语句和sql参数
 # sql：sql语句
 # args：sql参数
 # size：查询数量
-
-
 async def select(sql, args, size=None):
     log(sql, args) # 打印文档
     global __pool
@@ -239,17 +239,17 @@ class Model(dict, metaclass=ModelMetaclass):
         args.append(self.getValueOrDefault(self.__primary_key__))
         rows = await execute(self.__insert__, args)
         if rows != 1:
-            logging.warn('failed to insert record: affected rows: %s' % rows)
+            logging.warning('failed to insert record: affected rows: %s' % rows)
 
     async def update(self):
         args = list(map(self.getValue, self.__fields__))
         args.append(self.getValue(self.__primary_key__))
         rows = await execute(self.__update__, args)
         if rows != 1:
-            logging.warn('failed to update by primary key: affected rows: %s' % rows )
+            logging.warning('failed to update by primary key: affected rows: %s' % rows )
 
     async def remove(self):
         args = list(map(self.getValue(self.__primary_key__)))
         rows = await execute(self.__delete__, args)
         if row != 1:
-            logging.warn('failed to remove by primary key: affect rows: %s' % rows)
+            logging.warning('failed to remove by primary key: affect rows: %s' % rows)
