@@ -20,12 +20,12 @@ async def create_pool(loop, **kw):
     logging.info('create database connction pool...')  # 打印文档
     global __pool
     __pool = await aiomysql.create_pool(
-        host = kw.get('host', 'localhost'),
-        port = kw.get('port', 3306),
+        host = kw.get('host', 'localhost'), # host
+        port = kw.get('port', 3306), # 端口
         user = kw['user'],
         password = kw['password'],
         db = kw['db'],
-        charset = kw.get('charset', 'utf8'),
+        charset = kw.get('charset', 'utf8'), # 编码
         autocommit = kw.get('autocommit', True),
         maxsize = kw.get('maxsize', 10),
         minsize = kw.get('minsize', 1),
@@ -55,7 +55,7 @@ async def select(sql, args, size=None):
 
 async def execute(sql, args, autocommit=True):
     log(sql, args)
-    async with __pool as conn:
+    async with __pool.get() as conn:
         if not autocommit:
             await conn.begin()
         try:
@@ -68,7 +68,7 @@ async def execute(sql, args, autocommit=True):
             if not autocommit:
                 await conn.rollback()
             raise
-        return affected
+        return affect
 
 # orm
 
@@ -119,7 +119,7 @@ class FloatField(Field):
 class TextField(Field):
 
     def __init__(self, name=None, default=None):
-        super().__init__(name, 'text', False, defualt)
+        super().__init__(name, 'text', False, default)
 
 
 class ModelMetaclass(type):
@@ -129,9 +129,9 @@ class ModelMetaclass(type):
             return type.__new__(cls, name, bases, attrs)
         tableName = attrs.get('__table__', None) or name
         logging.info('found model: %s (table: %s)' % (name, tableName))
-        mappings = dict()  # 映射关系：字段名 ==> 字段类型
-        fields = [] # 除主键外其他字段
-        primaryKey = None # 主键
+        mappings = dict()  # 映射关系：字段名 ==> 字段类
+        fields = [] # 保存除主键外的字段名
+        primaryKey = None # 保存主键名
         for k, v in attrs.items():
             if isinstance(v,Field):
                 logging.info('   found mapping: %s ==> %s' % (k, v))
@@ -175,6 +175,7 @@ class Model(dict, metaclass=ModelMetaclass):
     def getValue(self, key):
         return getattr(self, key, None)
 
+    # 获取字段的值，如果没有就获取字段的默认值
     def getValueOrDefault(self, key):
         value = getattr(self, key, None)
         if value is None:
@@ -185,6 +186,14 @@ class Model(dict, metaclass=ModelMetaclass):
                 setattr(self, key, value)
         return value
 
+    # @classmethod 用来指定类的方法为类方法，没有此参数指定的类方法为实例方法
+    # class C:
+    #     @classmethod
+    #     def f(cls, arg1,arg2):
+    #         pass
+    #         return cls
+    # 调用时先调用f()，然后才使用C的构造函数（__init__）初始化
+    #     c = C.f(arg1,arg2)
     @classmethod
     async def findAll(cls, where=None, args=None, **kw):
         ' find objects by where clause.'
@@ -198,7 +207,7 @@ class Model(dict, metaclass=ModelMetaclass):
         if orderBy:
             sql.append('order by')
             sql.append(orderby)
-        limit = kw.get(limit, None)
+        limit = kw.get('limit', None)
         if limit is not None:
             sql.append('limit')
             if isinstance(limit, int):
@@ -231,7 +240,7 @@ class Model(dict, metaclass=ModelMetaclass):
         if len(rs) == 0:
             return None
         return cls(**rs[0])
-
+    # 实例方法：
     async def save(self):
         args = list(map(self.getValueOrDefault, self.__fields__))
         args.append(self.getValueOrDefault(self.__primary_key__))
